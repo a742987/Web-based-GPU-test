@@ -1,40 +1,42 @@
 # GPU Stress Test
 
-[日本語版 README](https://github.com/a742987/Web-based-GPU-test/blob/main/README-ja.md) | [简体中文 README](https://github.com/a742987/Web-based-GPU-test/blob/main/README-zh-CN.md)
+[README-ja.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README-ja.md) | [README-zh-CN.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README-zh-CN.md)
 
-This is a single-file WebGL stress test page designed to load the GPU with a heavy rendering workload.
+A single-file browser-based GPU stress test with a premium UI, multilingual support, and a Three.js wireframe render stage.
 
 ## What it does
 
-- Renders a full-screen animated scene with expensive fragment shading.
-- Uses offscreen feedback buffers to increase GPU work per frame.
-- Can run multiple WebGL engines in parallel for higher pressure.
-- Displays FPS, frame time, internal resolution, and runtime status.
+- Renders a calm Three.js wireframe scene on the right side of the page.
+- Uses hidden WebGL workloads to generate GPU pressure in the background.
+- Supports three languages: English, Japanese, and Simplified Chinese.
+- Shows FPS, frame time, internal resolution, and runtime state.
 
 ## How to use
 
 1. Open `gpu-stress-test.html` in a modern desktop browser.
-2. Click `Start Test` to begin.
-3. Use the controls to tune the load.
-4. Click `Pause` or `Stop and Reset` to reduce the load.
+2. Choose a language from the `Language` selector.
+3. Click `Start Test` to begin or pause the stress test.
+4. Adjust the sliders and preset to change the load.
 
 ## Controls
 
-- `Resolution Scale`: increases or decreases internal render resolution.
-- `Shader Complexity`: changes how much work the fragment shader performs.
-- `Draw Passes`: controls how many offscreen passes each engine performs.
-- `Concurrent Engines`: runs multiple WebGL contexts in parallel.
-- `Speed`: changes animation speed and shader time variation.
+- `Language`: switches the UI language.
+- `Preset`: applies a preconfigured load profile.
+- `Resolution Scale`: raises or lowers internal render resolution.
+- `Shader Complexity`: changes the fragment work per pass.
+- `Draw Passes`: changes how many offscreen passes are executed.
+- `Concurrent Engines`: increases or reduces parallel GPU engines.
+- `Speed`: changes animation speed and timing variation.
 
 ## Presets
 
-- `Safe`: lowest default load, suitable for verifying that the page works.
+- `Safe`: lowest default load.
 - `Medium`: balanced load.
 - `Extreme`: heavy load.
 - `Ultra`: highest built-in load.
 
 ## Notes
 
-- This page can make fans ramp up quickly and may heat the device noticeably.
-- If the browser becomes sluggish, use `Pause` first, then `Stop and Reset`.
+- The page is designed to stress the GPU, so temperatures and fan speed may rise quickly.
+- The interface is intentionally compact and low-noise to keep the controls readable.
 - WebGL support is required.
