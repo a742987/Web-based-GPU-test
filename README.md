@@ -1,5 +1,7 @@
 # GPU Stress Test
 
+[日本語版 README](https://github.com/a742987/Web-based-GPU-test/blob/main/README-ja.md) | [简体中文 README](https://github.com/a742987/Web-based-GPU-test/blob/main/README-zh-CN.md)
+
 This is a single-file WebGL stress test page designed to load the GPU with a heavy rendering workload.
 
 ## What it does
@@ -36,4 +38,3 @@ This is a single-file WebGL stress test page designed to load the GPU with a hea
 - This page can make fans ramp up quickly and may heat the device noticeably.
 - If the browser becomes sluggish, use `Pause` first, then `Stop and Reset`.
 - WebGL support is required.
-
