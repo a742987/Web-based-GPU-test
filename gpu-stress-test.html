@@ -6,20 +6,21 @@
   <title>GPU 压力测试</title>
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #06070b;
-      --panel: rgba(14, 18, 28, 0.82);
-      --panel-strong: rgba(9, 12, 18, 0.94);
-      --line: rgba(255, 255, 255, 0.09);
-      --line-strong: rgba(255, 255, 255, 0.18);
-      --text: #edf2ff;
-      --muted: #a5afc4;
-      --accent: #7ee2ff;
-      --accent-2: #9b8cff;
-      --good: #6ef3a5;
-      --warn: #ffce73;
-      --bad: #ff7f87;
-      --shadow: 0 24px 72px rgba(0, 0, 0, 0.45);
+      color-scheme: light;
+      --bg: #f7f9fc;
+      --surface: #ffffff;
+      --surface-soft: #fbfcff;
+      --surface-tint: #f6fbff;
+      --line: #dbe5f2;
+      --line-strong: #c8d8eb;
+      --text: #1f2a37;
+      --muted: #667085;
+      --accent-cyan: #c7f0f2;
+      --accent-purple: #e4d8ff;
+      --accent-pink: #ffd9e8;
+      --accent-ink: #4b5563;
+      --shadow: 0 16px 40px rgba(31, 42, 55, 0.08);
+      --shadow-soft: 0 8px 24px rgba(31, 42, 55, 0.06);
     }
 
     * {
@@ -31,11 +32,7 @@
       height: 100%;
       margin: 0;
       overflow: hidden;
-      background:
-        radial-gradient(1200px 800px at 20% 15%, rgba(126, 226, 255, 0.16), transparent 45%),
-        radial-gradient(1000px 700px at 80% 20%, rgba(155, 140, 255, 0.14), transparent 40%),
-        radial-gradient(1200px 900px at 50% 100%, rgba(110, 243, 165, 0.08), transparent 42%),
-        linear-gradient(180deg, #05060a 0%, #090c13 45%, #05060a 100%);
+      background: var(--bg);
       color: var(--text);
       font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
     }
@@ -44,6 +41,34 @@
       position: relative;
       width: 100%;
       height: 100%;
+      isolation: isolate;
+    }
+
+    #app::before,
+    #app::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(8px);
+      opacity: 0.9;
+    }
+
+    #app::before {
+      width: 240px;
+      height: 240px;
+      left: -60px;
+      top: 22px;
+      background: var(--accent-cyan);
+    }
+
+    #app::after {
+      width: 320px;
+      height: 320px;
+      right: -80px;
+      bottom: 28px;
+      background: var(--accent-purple);
     }
 
     canvas {
@@ -52,6 +77,8 @@
       height: 100%;
       image-rendering: auto;
       cursor: crosshair;
+      position: relative;
+      z-index: 1;
     }
 
     .overlay {
@@ -63,15 +90,15 @@
       justify-content: space-between;
       padding: 18px;
       gap: 16px;
+      z-index: 2;
     }
 
     .topbar,
     .panel {
       pointer-events: auto;
-      background: linear-gradient(180deg, rgba(20, 24, 35, 0.86), rgba(10, 12, 18, 0.76));
+      background: var(--surface);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
       border-radius: 18px;
     }
 
@@ -82,24 +109,26 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
+      box-shadow: var(--shadow-soft);
     }
 
     .brand {
       display: grid;
-      gap: 4px;
+      gap: 2px;
     }
 
     .brand h1 {
       margin: 0;
-      font-size: clamp(18px, 2vw, 24px);
-      letter-spacing: 0.02em;
+      font-size: clamp(16px, 1.7vw, 21px);
+      letter-spacing: 0.015em;
+      color: var(--accent-ink);
     }
 
     .brand p {
       margin: 0;
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 12px;
+      line-height: 1.25;
       max-width: 64ch;
     }
 
@@ -120,93 +149,106 @@
     button,
     select {
       border: 1px solid var(--line-strong);
-      border-radius: 12px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+      border-radius: 10px;
+      background: var(--surface-soft);
       color: var(--text);
-      padding: 11px 14px;
-      min-height: 42px;
+      padding: 9px 12px;
+      min-height: 38px;
       outline: none;
+      white-space: nowrap;
     }
 
     button {
       cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
     }
 
     button:hover {
       transform: translateY(-1px);
-      border-color: rgba(126, 226, 255, 0.45);
+      border-color: #a8d8dc;
+      box-shadow: var(--shadow-soft);
     }
 
     button.primary {
-      background: linear-gradient(135deg, rgba(126, 226, 255, 0.25), rgba(155, 140, 255, 0.18));
-      border-color: rgba(126, 226, 255, 0.5);
+      background: var(--accent-cyan);
+      border-color: #a6dfe5;
     }
 
     button.danger {
-      background: linear-gradient(135deg, rgba(255, 127, 135, 0.26), rgba(255, 206, 115, 0.12));
-      border-color: rgba(255, 127, 135, 0.45);
+      background: var(--accent-pink);
+      border-color: #f0b8cf;
     }
 
     .grid {
       width: min(100%, 860px);
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 8px;
     }
 
     .panel {
-      padding: 16px;
+      padding: 12px;
+      box-shadow: var(--shadow-soft);
     }
 
     .field {
       display: grid;
-      gap: 8px;
+      gap: 4px;
     }
 
     .field label {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.1;
     }
 
     .field strong {
-      color: var(--text);
+      color: var(--accent-ink);
       font-weight: 600;
     }
 
     input[type="range"] {
       width: 100%;
-      accent-color: var(--accent);
+      accent-color: #9edee4;
     }
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 6px;
     }
 
     .stat {
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      min-height: 60px;
+      display: grid;
+      align-content: start;
+      gap: 4px;
     }
 
     .stat .k {
       display: block;
-      font-size: 12px;
+      font-size: 10px;
       color: var(--muted);
-      margin-bottom: 6px;
+      line-height: 1.05;
     }
 
     .stat .v {
-      font-size: 20px;
+      font-size: clamp(15px, 1.5vw, 20px);
       font-weight: 700;
-      letter-spacing: 0.01em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent-ink);
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .footer {
@@ -214,48 +256,47 @@
       display: flex;
       align-items: end;
       justify-content: space-between;
-      gap: 14px;
+      gap: 6px;
       flex-wrap: wrap;
     }
 
     .hint {
       max-width: 72ch;
-      font-size: 13px;
-      line-height: 1.6;
+      font-size: 11px;
+      line-height: 1.25;
       color: var(--muted);
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 14px;
-      padding: 12px 14px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px 10px;
     }
 
     .status {
-      min-width: 180px;
-      text-align: right;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(126, 226, 255, 0.22);
-      background: linear-gradient(135deg, rgba(126, 226, 255, 0.12), rgba(155, 140, 255, 0.08));
+      min-width: 0;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid #d7dff0;
+      background: var(--surface-tint);
     }
 
     .status .label {
       display: block;
-      font-size: 12px;
+      font-size: 10px;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 1px;
+      line-height: 1.05;
     }
 
     .status .value {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 700;
+      color: var(--accent-ink);
+      line-height: 1.05;
     }
 
     @media (max-width: 860px) {
-      .grid,
-      .stats {
-        grid-template-columns: 1fr 1fr;
-      }
-
       .footer {
         align-items: stretch;
       }
@@ -270,91 +311,446 @@
         padding: 12px;
       }
 
-      .grid,
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
       .topbar {
         padding: 14px;
       }
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(440px, 520px) minmax(0, 1fr);
+      gap: 14px;
+      height: 100%;
+      padding: 16px;
+    }
+
+    .sidebar {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .brand-card {
+      padding: 14px;
+    }
+
+    .card {
+      pointer-events: auto;
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow-soft);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .brand-card::before,
+    .action-card::before,
+    .preset-card::before,
+    .controls-card::before,
+    .metrics-card::before,
+    .stage-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      border-radius: inherit;
+      opacity: 0.95;
+    }
+
+    .brand-card::before {
+      background: var(--accent-cyan);
+    }
+
+    .action-card::before,
+    .metrics-card::before {
+      background: var(--accent-pink);
+    }
+
+    .preset-card::before,
+    .stage-card::before {
+      background: var(--accent-purple);
+    }
+
+    .controls-card::before {
+      background: var(--accent-cyan);
+    }
+
+    .action-card {
+      padding: 10px;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .language-field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .language-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+      line-height: 1;
+    }
+
+    .action-row > * {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+    }
+
+    .section-subtitle {
+      font-size: 10px;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.05;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .controls-grid {
+      width: 100%;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .field label {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .field label span {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .field label strong {
+      white-space: nowrap;
+    }
+
+    .stage {
+      min-height: 0;
+      display: flex;
+    }
+
+    .stage-card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .stage-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .stage-title {
+      margin-top: 4px;
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--accent-ink);
+      letter-spacing: 0.01em;
+    }
+
+    .stage-badges {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      color: var(--accent-ink);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    #stageModeText {
+      background: var(--accent-cyan);
+      border-color: #b9e6eb;
+    }
+
+    #stageLangText {
+      background: var(--accent-purple);
+      border-color: #d8caf4;
+    }
+
+    .canvas-frame {
+      flex: 1;
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    canvas {
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: auto;
+      cursor: crosshair;
+      background: #ffffff;
+    }
+
+    .stage-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stage-note {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .status {
+      margin-top: auto;
+    }
+
+    .button-inline {
+      min-width: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: minmax(400px, 460px) minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      #app {
+        min-height: 100%;
+        overflow: auto;
+      }
+
+      .shell {
+        height: auto;
+        min-height: 100%;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(520px, 1fr);
+      }
+
+      .sidebar {
+        max-height: 46vh;
+      }
+
+      .stage-card {
+        min-height: 520px;
+      }
+
+      .action-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    ::selection {
+      background: var(--accent-purple);
+      color: var(--text);
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <canvas id="gl"></canvas>
-    <div class="overlay">
-      <div class="topbar">
-        <div class="brand">
-          <h1>GPU 压力测试</h1>
-          <p>通过高分辨率全屏渲染和高复杂度片元着色器持续压榨 GPU。建议先从低档开始，再逐步提高负载。</p>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand brand-card">
+          <div class="eyebrow" id="pageEyebrow">GPU Control Room</div>
+          <h1 id="pageTitle">GPU 压力测试</h1>
+          <p id="pageSubtitle">通过高分辨率全屏渲染和高复杂度片元着色器持续压榨 GPU。建议先从低档开始，再逐步提高负载。</p>
         </div>
-        <div class="actions">
-          <button id="toggleBtn" class="primary">开始测试</button>
-          <button id="fullscreenBtn">全屏</button>
+
+        <div class="card action-card">
+          <div class="action-row">
+            <div class="language-field">
+              <span class="language-label">Language</span>
+              <select id="languageSelect" aria-label="Language">
+              <option value="zh-CN">简体中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              </select>
+            </div>
+            <button id="toggleBtn" class="primary">开始测试</button>
+          </div>
+        </div>
+
+        <div class="card preset-card">
+          <div class="section-head">
+            <span class="section-title" id="presetLabelText">预设</span>
+            <span class="section-subtitle" id="presetHintText">快速切换负载</span>
+          </div>
           <select id="preset">
             <option value="safe" selected>安全</option>
             <option value="medium">中等</option>
             <option value="extreme">极限</option>
             <option value="ultra">超压</option>
           </select>
-          <button id="resetBtn" class="danger">停止并重置</button>
         </div>
-      </div>
 
-      <div class="panel">
-        <div class="grid">
-          <div class="field">
-            <label><span>渲染分辨率倍率</span><strong id="resLabel">1.00x</strong></label>
-            <input id="resolution" type="range" min="0.5" max="2" step="0.05" value="0.8" />
+        <div class="card controls-card">
+          <div class="section-head">
+            <span class="section-title" id="controlsLabelText">控制项</span>
+            <span class="section-subtitle" id="controlsHintText">逐项调节负载</span>
           </div>
-          <div class="field">
-            <label><span>着色器复杂度</span><strong id="complexityLabel">64 次</strong></label>
-            <input id="complexity" type="range" min="32" max="256" step="1" value="64" />
-          </div>
-          <div class="field">
-            <label><span>每帧绘制次数</span><strong id="passesLabel">1 次</strong></label>
-            <input id="passes" type="range" min="1" max="8" step="1" value="1" />
-          </div>
-          <div class="field">
-            <label><span>并发引擎</span><strong id="engineCountLabel">1 个</strong></label>
-            <input id="engines" type="range" min="1" max="2" step="1" value="1" />
-          </div>
-          <div class="field">
-            <label><span>动画速度</span><strong id="speedLabel">0.90x</strong></label>
-            <input id="speed" type="range" min="0.2" max="2" step="0.05" value="0.9" />
+          <div class="grid controls-grid">
+            <div class="field">
+              <label><span id="resolutionLabelText">渲染分辨率倍率</span><strong id="resLabel">1.00x</strong></label>
+              <input id="resolution" type="range" min="0.5" max="2" step="0.05" value="0.8" />
+            </div>
+            <div class="field">
+              <label><span id="complexityLabelText">着色器复杂度</span><strong id="complexityLabel">64 次</strong></label>
+              <input id="complexity" type="range" min="32" max="256" step="1" value="64" />
+            </div>
+            <div class="field">
+              <label><span id="passesLabelText">每帧绘制次数</span><strong id="passesLabel">1 次</strong></label>
+              <input id="passes" type="range" min="1" max="8" step="1" value="1" />
+            </div>
+            <div class="field">
+              <label><span id="enginesLabelText">并发引擎</span><strong id="engineCountLabel">1 个</strong></label>
+              <input id="engines" type="range" min="1" max="2" step="1" value="1" />
+            </div>
+            <div class="field">
+              <label><span id="speedLabelText">动画速度</span><strong id="speedLabel">0.90x</strong></label>
+              <input id="speed" type="range" min="0.2" max="2" step="0.05" value="0.9" />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="footer">
-        <div class="stats">
-          <div class="stat"><span class="k">FPS</span><span class="v" id="fps">0</span></div>
-          <div class="stat"><span class="k">帧耗时</span><span class="v" id="frameMs">0.0 ms</span></div>
-          <div class="stat"><span class="k">内部分辨率</span><span class="v" id="internalSize">0 × 0</span></div>
-          <div class="stat"><span class="k">测试状态</span><span class="v" id="renderState">待机</span></div>
+        <div class="card metrics-card">
+          <div class="section-head">
+            <span class="section-title" id="metricsLabelText">指标</span>
+            <span class="section-subtitle" id="metricsHintText">实时反馈</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="k" id="fpsLabelText">FPS</span><span class="v" id="fps">0</span></div>
+            <div class="stat"><span class="k" id="frameMsLabelText">帧耗时</span><span class="v" id="frameMs">0.0 ms</span></div>
+            <div class="stat"><span class="k" id="internalSizeLabelText">内部分辨率</span><span class="v" id="internalSize">0 × 0</span></div>
+            <div class="stat"><span class="k" id="renderStateLabelText">测试状态</span><span class="v" id="renderState">待机</span></div>
+          </div>
         </div>
-        <div class="status">
-          <span class="label">提示</span>
-          <span class="value" id="statusText">按“开始测试”启动压测</span>
-        </div>
-      </div>
+
+      </aside>
+
+      <main class="stage">
+        <section class="stage-card">
+          <div class="stage-head">
+            <div>
+              <div class="eyebrow" id="stageEyebrow">Live Render</div>
+              <div class="stage-title" id="stageTitleText">主测试窗口</div>
+            </div>
+            <div class="stage-badges">
+              <span class="badge" id="stageModeText">Three.js</span>
+              <span class="badge" id="stageLangText">ZH</span>
+            </div>
+          </div>
+          <div class="canvas-frame">
+            <canvas id="gl"></canvas>
+          </div>
+          <div class="stage-foot">
+            <div class="stage-note" id="stageNoteText">Use the left panel to tune load.</div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
+  <script src="./three.min.js"></script>
   <script>
     (() => {
       const canvas = document.getElementById('gl');
       const toggleBtn = document.getElementById('toggleBtn');
-      const fullscreenBtn = document.getElementById('fullscreenBtn');
-      const resetBtn = document.getElementById('resetBtn');
       const preset = document.getElementById('preset');
+      const langSelect = document.getElementById('languageSelect');
       const resolution = document.getElementById('resolution');
       const complexity = document.getElementById('complexity');
       const passes = document.getElementById('passes');
       const engines = document.getElementById('engines');
       const speed = document.getElementById('speed');
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      const pageEyebrow = document.getElementById('pageEyebrow');
+      const presetLabelText = document.getElementById('presetLabelText');
+      const presetHintText = document.getElementById('presetHintText');
+      const controlsLabelText = document.getElementById('controlsLabelText');
+      const controlsHintText = document.getElementById('controlsHintText');
+      const metricsLabelText = document.getElementById('metricsLabelText');
+      const metricsHintText = document.getElementById('metricsHintText');
+      const resolutionLabelText = document.getElementById('resolutionLabelText');
+      const complexityLabelText = document.getElementById('complexityLabelText');
+      const passesLabelText = document.getElementById('passesLabelText');
+      const enginesLabelText = document.getElementById('enginesLabelText');
+      const speedLabelText = document.getElementById('speedLabelText');
+      const fpsLabelText = document.getElementById('fpsLabelText');
+      const frameMsLabelText = document.getElementById('frameMsLabelText');
+      const internalSizeLabelText = document.getElementById('internalSizeLabelText');
+      const renderStateLabelText = document.getElementById('renderStateLabelText');
+      const stageEyebrow = document.getElementById('stageEyebrow');
+      const stageTitleText = document.getElementById('stageTitleText');
+      const stageModeText = document.getElementById('stageModeText');
+      const stageLangText = document.getElementById('stageLangText');
+      const stageNoteText = document.getElementById('stageNoteText');
       const resLabel = document.getElementById('resLabel');
       const complexityLabel = document.getElementById('complexityLabel');
       const passesLabel = document.getElementById('passesLabel');
@@ -365,6 +761,126 @@
       const internalSizeEl = document.getElementById('internalSize');
       const renderStateEl = document.getElementById('renderState');
       const statusTextEl = document.getElementById('statusText');
+
+      const i18n = {
+        'zh-CN': {
+          htmlLang: 'zh-CN',
+          title: 'GPU 压力测试',
+          eyebrow: 'GPU 控制台',
+          subtitle: '通过高分辨率全屏渲染和高复杂度片元着色器持续压榨 GPU。建议先从低档开始，再逐步提高负载。',
+          buttons: { start: '开始测试', pause: '暂停测试', fullscreen: '全屏', reset: '停止并重置' },
+          presetTitle: '预设',
+          presetHint: '快速切换负载',
+          controlsTitle: '控制项',
+          controlsHint: '逐项调节负载',
+          metricsTitle: '指标',
+          metricsHint: '实时反馈',
+          labels: {
+            resolution: '渲染分辨率倍率',
+            complexity: '着色器复杂度',
+            passes: '每帧绘制次数',
+            engines: '并发引擎',
+            speed: '动画速度',
+            fps: 'FPS',
+            frameMs: '帧耗时',
+            internalSize: '内部分辨率',
+            renderState: '测试状态'
+          },
+          presets: { safe: '安全', medium: '中等', extreme: '极限', ultra: '超压' },
+          state: { standby: '待机', running: '运行中', paused: '已暂停', reset: '已重置', unavailable: '不可用', error: '错误' },
+          suffix: { complexity: '次', passes: '次', engines: '个' },
+          stage: { eyebrow: '实时渲染', title: '主测试窗口', mode: 'Three.js', lang: 'ZH', note: '使用左侧面板调节负载。' },
+          status: {
+            ready: '按“开始测试”启动压测',
+            updated: count => `参数已更新，${count} 个引擎待命。`,
+            running: count => `正在压测中，${count} 个引擎并发运行。`,
+            paused: '测试已暂停，画面保持静止。',
+            load: (load, engines, complexity, passes) => `估算负载：${load}% ，${engines} 个引擎，复杂度 ${complexity}，离屏轮数 ${passes}。`,
+            background: '页面切换到后台，浏览器可能会降低刷新率。',
+            notSupported: '当前浏览器不支持 Three.js / WebGL',
+            compileFailed: msg => `着色器编译失败：${msg}`,
+            fullscreenFailed: msg => `全屏失败：${msg}`
+          }
+        },
+        en: {
+          htmlLang: 'en',
+          title: 'GPU Stress Test',
+          eyebrow: 'GPU Control Room',
+          subtitle: 'This page pushes the GPU with a heavy WebGL workload. Start from the safe preset and increase gradually.',
+          buttons: { start: 'Start Test', pause: 'Pause Test', fullscreen: 'Fullscreen', reset: 'Stop and Reset' },
+          presetTitle: 'Presets',
+          presetHint: 'Switch load quickly',
+          controlsTitle: 'Controls',
+          controlsHint: 'Tune each parameter',
+          metricsTitle: 'Metrics',
+          metricsHint: 'Live feedback',
+          labels: {
+            resolution: 'Resolution Scale',
+            complexity: 'Shader Complexity',
+            passes: 'Draw Passes',
+            engines: 'Concurrent Engines',
+            speed: 'Animation Speed',
+            fps: 'FPS',
+            frameMs: 'Frame Time',
+            internalSize: 'Internal Resolution',
+            renderState: 'Status'
+          },
+          presets: { safe: 'Safe', medium: 'Medium', extreme: 'Extreme', ultra: 'Ultra' },
+          state: { standby: 'Standby', running: 'Running', paused: 'Paused', reset: 'Reset', unavailable: 'Unavailable', error: 'Error' },
+          suffix: { complexity: 'iterations', passes: 'passes', engines: 'engines' },
+          stage: { eyebrow: 'Live Render', title: 'Main Test Window', mode: 'Three.js', lang: 'EN', note: 'Use the left panel to tune load.' },
+          status: {
+            ready: 'Press "Start Test" to begin.',
+            updated: count => `Settings updated, ${count} engine${count === 1 ? '' : 's'} ready.`,
+            running: count => `Running with ${count} engine${count === 1 ? '' : 's'}.`,
+            paused: 'Test paused. The frame is frozen.',
+            load: (load, engines, complexity, passes) => `Estimated load: ${load}% , ${engines} engine${engines === 1 ? '' : 's'}, complexity ${complexity}, offscreen passes ${passes}.`,
+            background: 'The page is in the background; the browser may reduce the refresh rate.',
+            notSupported: 'This browser does not support Three.js / WebGL',
+            compileFailed: msg => `Shader compilation failed: ${msg}`,
+            fullscreenFailed: msg => `Fullscreen failed: ${msg}`
+          }
+        },
+        ja: {
+          htmlLang: 'ja',
+          title: 'GPU ストレステスト',
+          eyebrow: 'GPU コントロールルーム',
+          subtitle: 'このページは高負荷の WebGL ワークロードで GPU に強い負荷をかけます。まずは安全な設定から始めてください。',
+          buttons: { start: 'テスト開始', pause: '一時停止', fullscreen: '全画面', reset: '停止してリセット' },
+          presetTitle: 'プリセット',
+          presetHint: '負荷を素早く切替',
+          controlsTitle: 'コントロール',
+          controlsHint: '各項目を調整',
+          metricsTitle: 'メトリクス',
+          metricsHint: 'リアルタイム表示',
+          labels: {
+            resolution: 'レンダリング倍率',
+            complexity: 'シェーダー複雑度',
+            passes: '1フレームの描画回数',
+            engines: '同時エンジン数',
+            speed: 'アニメ速度',
+            fps: 'FPS',
+            frameMs: 'フレーム時間',
+            internalSize: '内部解像度',
+            renderState: '状態'
+          },
+          presets: { safe: '安全', medium: '中間', extreme: '高負荷', ultra: '超負荷' },
+          state: { standby: '待機', running: '実行中', paused: '一時停止', reset: 'リセット済み', unavailable: '利用不可', error: 'エラー' },
+          suffix: { complexity: '回', passes: '回', engines: '個' },
+          stage: { eyebrow: 'リアルタイム描画', title: 'メインテストウィンドウ', mode: 'Three.js', lang: 'JA', note: '左パネルで負荷を調整します。' },
+          status: {
+            ready: '「テスト開始」を押して負荷を開始します。',
+            updated: count => `設定を更新しました。${count} 個のエンジンが待機しています。`,
+            running: count => `${count} 個のエンジンで実行中です。`,
+            paused: 'テストは一時停止中です。画面は静止しています。',
+            load: (load, engines, complexity, passes) => `推定負荷: ${load}%、${engines} 個のエンジン、複雑度 ${complexity}、オフスクリーン回数 ${passes}。`,
+            background: 'ページがバックグラウンドに移動しました。ブラウザが更新頻度を下げる場合があります。',
+            notSupported: 'このブラウザは Three.js / WebGL をサポートしていません',
+            compileFailed: msg => `シェーダーのコンパイルに失敗しました: ${msg}`,
+            fullscreenFailed: msg => `全画面表示に失敗しました: ${msg}`
+          }
+        }
+      };
 
       const auxHost = document.createElement('div');
       auxHost.style.position = 'absolute';
@@ -399,8 +915,295 @@
         frameCount: 0,
         fpsLast: performance.now(),
         fps: 0,
-        currentEngineCount: 0
+        currentEngineCount: 0,
+        renderState: 'standby',
+        statusKind: 'ready',
+        statusArgs: []
       };
+
+      let currentLanguage = i18n[langSelect.value] ? langSelect.value : 'zh-CN';
+      let locale = i18n[currentLanguage];
+
+      function setLanguage(language) {
+        currentLanguage = i18n[language] ? language : 'zh-CN';
+        locale = i18n[currentLanguage];
+        langSelect.value = currentLanguage;
+        document.documentElement.lang = locale.htmlLang;
+        document.title = locale.title;
+        pageEyebrow.textContent = locale.eyebrow;
+        pageTitle.textContent = locale.title;
+        pageSubtitle.textContent = locale.subtitle;
+        presetLabelText.textContent = locale.presetTitle;
+        presetHintText.textContent = locale.presetHint;
+        controlsLabelText.textContent = locale.controlsTitle;
+        controlsHintText.textContent = locale.controlsHint;
+        metricsLabelText.textContent = locale.metricsTitle;
+        metricsHintText.textContent = locale.metricsHint;
+        resolutionLabelText.textContent = locale.labels.resolution;
+        complexityLabelText.textContent = locale.labels.complexity;
+        passesLabelText.textContent = locale.labels.passes;
+        enginesLabelText.textContent = locale.labels.engines;
+        speedLabelText.textContent = locale.labels.speed;
+        fpsLabelText.textContent = locale.labels.fps;
+        frameMsLabelText.textContent = locale.labels.frameMs;
+        internalSizeLabelText.textContent = locale.labels.internalSize;
+        renderStateLabelText.textContent = locale.labels.renderState;
+        stageEyebrow.textContent = locale.stage.eyebrow;
+        stageTitleText.textContent = locale.stage.title;
+        stageModeText.textContent = locale.stage.mode;
+        stageLangText.textContent = locale.stage.lang;
+        stageNoteText.textContent = locale.stage.note;
+        preset.options[0].textContent = locale.presets.safe;
+        preset.options[1].textContent = locale.presets.medium;
+        preset.options[2].textContent = locale.presets.extreme;
+        preset.options[3].textContent = locale.presets.ultra;
+        updateToggleButton();
+        updateLabels();
+        renderStateEl.textContent = locale.state[state.renderState] || locale.state.standby;
+        renderStatusFromState();
+      }
+
+      function updateToggleButton() {
+        toggleBtn.textContent = state.running ? locale.buttons.pause : locale.buttons.start;
+      }
+
+      function formatCount(value, unit) {
+        return `${value} ${unit}`;
+      }
+
+      function updateLabels() {
+        resLabel.textContent = config.resScale.toFixed(2) + 'x';
+        complexityLabel.textContent = formatCount(config.complexity, locale.suffix.complexity);
+        passesLabel.textContent = formatCount(config.passes, locale.suffix.passes);
+        engineCountLabel.textContent = formatCount(config.engineCount, locale.suffix.engines);
+        speedLabel.textContent = config.speed.toFixed(2) + 'x';
+      }
+
+      function renderStatusFromState() {
+        if (!renderStateEl || !statusTextEl) {
+          return;
+        }
+        const messages = locale.status;
+        const kind = state.statusKind;
+        const args = state.statusArgs;
+        switch (kind) {
+          case 'ready':
+            statusTextEl.textContent = messages.ready;
+            break;
+          case 'updated':
+            statusTextEl.textContent = messages.updated(args[0]);
+            break;
+          case 'running':
+            statusTextEl.textContent = messages.running(args[0]);
+            break;
+          case 'paused':
+            statusTextEl.textContent = messages.paused;
+            break;
+          case 'load':
+            statusTextEl.textContent = messages.load(args[0], args[1], args[2], args[3]);
+            break;
+          case 'background':
+            statusTextEl.textContent = messages.background;
+            break;
+          case 'notSupported':
+            statusTextEl.textContent = messages.notSupported;
+            break;
+          case 'compileFailed':
+            statusTextEl.textContent = messages.compileFailed(args[0]);
+            break;
+          case 'fullscreenFailed':
+            statusTextEl.textContent = messages.fullscreenFailed(args[0]);
+            break;
+          default:
+            statusTextEl.textContent = String(kind);
+        }
+      }
+
+      function setStatus(kind, ...args) {
+        state.statusKind = kind;
+        state.statusArgs = args;
+        renderStatusFromState();
+      }
+
+      function setRenderState(kind) {
+        state.renderState = kind;
+        renderStateEl.textContent = locale.state[kind] || locale.state.standby;
+      }
+
+      function createThreeStage(stageCanvas) {
+        if (!window.THREE) {
+          return null;
+        }
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas: stageCanvas,
+          alpha: false,
+          antialias: true,
+          depth: true,
+          stencil: false,
+          preserveDrawingBuffer: false,
+          powerPreference: 'high-performance'
+        });
+
+        if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) {
+          renderer.outputColorSpace = THREE.SRGBColorSpace;
+        } else if ('outputEncoding' in renderer && THREE.sRGBEncoding !== undefined) {
+          renderer.outputEncoding = THREE.sRGBEncoding;
+        }
+
+        renderer.setClearColor(0xffffff, 1);
+        renderer.setPixelRatio(1);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff);
+
+        const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+        camera.position.set(0.15, 0.2, 7.4);
+        camera.lookAt(0, 0, 0);
+
+        const root = new THREE.Group();
+        scene.add(root);
+
+        const colors = {
+          cyan: 0x99dde4,
+          purple: 0xd9ccff,
+          pink: 0xf7c9df,
+          slate: 0xc7d2e3
+        };
+
+        const lineMaterial = (color, opacity) => new THREE.LineBasicMaterial({
+          color,
+          transparent: opacity < 1,
+          opacity,
+          depthTest: true,
+          depthWrite: false
+        });
+
+        const core = new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1.18, 0)),
+          lineMaterial(colors.cyan, 0.96)
+        );
+
+        const shell = new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.OctahedronGeometry(1.86, 0)),
+          lineMaterial(colors.purple, 0.88)
+        );
+
+        const frame = new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.BoxGeometry(4.3, 2.8, 4.3)),
+          lineMaterial(colors.slate, 0.42)
+        );
+
+        const innerRing = new THREE.Mesh(
+          new THREE.TorusGeometry(1.72, 0.022, 6, 160),
+          new THREE.MeshBasicMaterial({ color: colors.pink, wireframe: true, transparent: true, opacity: 0.8 })
+        );
+
+        const outerRing = new THREE.Mesh(
+          new THREE.TorusGeometry(2.28, 0.018, 6, 160),
+          new THREE.MeshBasicMaterial({ color: colors.cyan, wireframe: true, transparent: true, opacity: 0.42 })
+        );
+
+        const sideRing = new THREE.Mesh(
+          new THREE.TorusGeometry(1.48, 0.016, 6, 160),
+          new THREE.MeshBasicMaterial({ color: colors.purple, wireframe: true, transparent: true, opacity: 0.56 })
+        );
+
+        const grid = new THREE.GridHelper(12, 18, 0xcfd9e6, 0xe6ebf2);
+        grid.position.y = -2.4;
+        if (Array.isArray(grid.material)) {
+          for (const material of grid.material) {
+            material.transparent = true;
+            material.opacity = 0.38;
+          }
+        } else {
+          grid.material.transparent = true;
+          grid.material.opacity = 0.38;
+        }
+
+        root.add(frame, grid, core, shell, innerRing, outerRing, sideRing);
+
+        const accent = new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.BoxGeometry(0.86, 0.86, 0.86)),
+          lineMaterial(colors.pink, 0.78)
+        );
+        accent.position.set(1.95, 1.08, -0.75);
+        root.add(accent);
+
+        function resize(width, height) {
+          if (!width || !height) {
+            return;
+          }
+          renderer.setSize(width, height, false);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        }
+
+        function render(now) {
+          const t = now * 0.00028 * Math.max(0.2, config.speed);
+          root.rotation.x = 0.16 + Math.sin(t * 0.62) * 0.08;
+          root.rotation.y = t * 0.55;
+          root.rotation.z = Math.sin(t * 0.34) * 0.05;
+          core.rotation.x = t * 0.48;
+          core.rotation.y = -t * 0.36;
+          shell.rotation.x = -t * 0.21;
+          shell.rotation.z = t * 0.27;
+          frame.rotation.x = 0.12 + Math.sin(t * 0.26) * 0.03;
+          frame.rotation.y = t * 0.12;
+          innerRing.rotation.x = Math.PI * 0.5 + Math.sin(t * 0.5) * 0.08;
+          innerRing.rotation.y = t * 0.38;
+          outerRing.rotation.y = Math.PI * 0.5 + t * 0.44;
+          outerRing.rotation.z = Math.sin(t * 0.22) * 0.07;
+          sideRing.rotation.x = t * 0.31;
+          sideRing.rotation.y = Math.PI * 0.25 + Math.sin(t * 0.28) * 0.09;
+          accent.rotation.set(t * 0.25, t * 0.34, t * 0.12);
+          camera.position.x = Math.sin(t * 0.18) * 0.22;
+          camera.position.y = 0.18 + Math.cos(t * 0.22) * 0.08;
+          camera.position.z = 7.4;
+          camera.lookAt(0, 0, 0);
+          renderer.render(scene, camera);
+        }
+
+        function dispose() {
+          renderer.dispose();
+          core.geometry.dispose();
+          shell.geometry.dispose();
+          frame.geometry.dispose();
+          innerRing.geometry.dispose();
+          outerRing.geometry.dispose();
+          sideRing.geometry.dispose();
+          accent.geometry.dispose();
+          core.material.dispose();
+          shell.material.dispose();
+          frame.material.dispose();
+          innerRing.material.dispose();
+          outerRing.material.dispose();
+          sideRing.material.dispose();
+          accent.material.dispose();
+          grid.geometry.dispose();
+          if (Array.isArray(grid.material)) {
+            for (const material of grid.material) {
+              material.dispose();
+            }
+          } else {
+            grid.material.dispose();
+          }
+        }
+
+        return {
+          renderer,
+          resize,
+          render,
+          dispose
+        };
+      }
+
+      const stageRenderer = createThreeStage(canvas);
+      if (!stageRenderer) {
+        setStatus('notSupported');
+        setRenderState('unavailable');
+        toggleBtn.disabled = true;
+      }
 
       const vsSource = `
         attribute vec2 aPosition;
@@ -428,6 +1231,11 @@
           return fract(p.x * p.y);
         }
 
+        vec2 hash2(vec2 p) {
+          float n = hash(p);
+          return vec2(n, hash(p + n + 19.19));
+        }
+
         mat2 rot(float a) {
           float s = sin(a);
           float c = cos(a);
@@ -435,11 +1243,11 @@
         }
 
         vec3 palette(float t) {
-          vec3 a = vec3(0.16, 0.18, 0.22);
-          vec3 b = vec3(0.62, 0.48, 0.36);
-          vec3 c = vec3(0.95, 0.72, 0.58);
-          vec3 d = vec3(0.18, 0.34, 0.56);
-          return a + b * cos(6.28318 * (c * t + d));
+          vec3 a = vec3(0.98, 0.99, 1.00);
+          vec3 b = vec3(0.14, 0.10, 0.16);
+          vec3 c = vec3(0.22, 0.18, 0.24);
+          vec3 d = vec3(0.10, 0.08, 0.14);
+          return a - b * cos(6.28318 * (c * t + d));
         }
 
         void main() {
@@ -449,46 +1257,77 @@
           float t = uTime * 0.001 * uSpeed;
           vec2 p = uv;
           vec2 flow = vec2(0.0);
-          vec3 accum = vec3(0.0);
-          float seed = uSeed;
-          float burst = 0.0;
+          vec3 col = vec3(0.985, 0.99, 1.0);
+          float glowSum = 0.0;
+          float ribbonSum = 0.0;
+          float nodeSum = 0.0;
+
+          vec2 orbitA = vec2(sin(t * 0.82 + uSeed), cos(t * 0.74 + 0.4 + uSeed)) * 0.46;
+          vec2 orbitB = vec2(sin(t * 0.56 + 1.7 + uSeed), cos(t * 0.63 + 0.9)) * 0.34;
+          vec2 orbitC = vec2(sin(t * 0.95 + 2.2), cos(t * 0.88 + 1.1 + uSeed)) * 0.24;
 
           for (int i = 0; i < 384; i++) {
             if (i >= uComplexity) break;
             float fi = float(i);
-            float a = t * 0.58 + fi * 0.123 + uPass * 0.271 + seed * 0.05;
-            float r = dot(p, p) + 0.11;
-            p = rot(a) * (abs(p) / r - 0.53);
-            vec2 warp = vec2(sin(p.y * 3.7 + a + seed), cos(p.x * 4.1 - a - seed)) * 0.03;
-            p += warp;
-            flow += warp;
-            float n = hash(p + fi * 0.17 + a + seed);
-            seed += n * 0.01;
-            accum += palette(n + fi * 0.007 + t * 0.02 + seed * 0.02) * (0.008 + n * 0.012);
-            burst += exp(-abs(r - 1.2)) * (0.18 + n);
-            if (mod(fi + seed, 3.0) < 0.55) {
-              vec2 duv = clamp(vUv + flow * 0.015, 0.001, 0.999);
-              accum += texture2D(uPrev, duv).rgb * 0.04;
+            float a = t * 0.42 + fi * 0.071 + uPass * 0.19 + uSeed * 0.7;
+            vec2 orbit = vec2(
+              sin(a * 1.31 + sin(a * 0.41)) * 0.58,
+              cos(a * 1.17 + cos(a * 0.37)) * 0.38
+            );
+            vec2 drift = vec2(
+              sin(a * 0.77 + fi * 0.03 + t),
+              cos(a * 0.91 - fi * 0.025 - t * 0.7)
+            ) * 0.06;
+            vec2 center = orbit + drift;
+            float radius = 0.14 + 0.03 * sin(a * 2.0);
+            float d = length(p - center);
+            float glow = exp(-d * d * (18.0 + 4.0 * sin(fi * 0.17 + t)));
+            float ring = exp(-abs(d - radius) * (22.0 + 3.0 * cos(fi * 0.11 + t)));
+            float ribbon = exp(-abs((p.y - center.y) - sin(p.x * 2.8 + a) * 0.12) * 24.0);
+            float node = exp(-d * d * 240.0) * (0.6 + 0.4 * smoothstep(0.10, 0.22, radius));
+            vec3 tint = palette(fract(fi * 0.027 + uSeed * 0.13 + 0.08 * sin(t * 0.2)));
+
+            glowSum += glow;
+            ribbonSum += ring + ribbon * 0.35;
+            nodeSum += node;
+            col += tint * (glow * 0.018 + ring * 0.012 + ribbon * 0.004);
+
+            vec2 swirl = rot(0.004 * sin(a) + 0.002 * cos(fi * 0.3)) * p;
+            p = mix(p, swirl, 0.06);
+            flow += vec2(sin(a + p.y), cos(a - p.x)) * 0.0015;
+
+            if (mod(fi + uPass, 7.0) < 0.45) {
+              vec2 duv = clamp(vUv + flow * 0.01 + hash2(center * 3.0) * 0.002, 0.001, 0.999);
+              col += texture2D(uPrev, duv).rgb * 0.02;
             }
-            if (mod(fi, 5.0) < 0.35) {
-              vec2 duv2 = clamp(vUv + vec2(flow.y, -flow.x) * 0.02, 0.001, 0.999);
-              accum += texture2D(uPrev, duv2).rgb * 0.015;
+
+            if (mod(fi, 11.0) < 0.5) {
+              vec2 duv2 = clamp(vUv + vec2(flow.y, -flow.x) * 0.014, 0.001, 0.999);
+              col += texture2D(uPrev, duv2).rgb * 0.012;
             }
           }
 
-          vec2 adv = uv + flow * 45.0;
-          vec4 prev0 = texture2D(uPrev, clamp(vUv + flow * 0.02, 0.001, 0.999));
-          vec4 prev1 = texture2D(uPrev, clamp(vUv + vec2(0.004, -0.003) * (1.0 + 0.5 * sin(t * 1.3 + seed)), 0.001, 0.999));
-          vec4 prev2 = texture2D(uPrev, clamp(vUv + vec2(-0.006, 0.005) * (1.0 + 0.5 * cos(t * 0.7 + seed)), 0.001, 0.999));
-          float rings = sin(length(adv) * 16.0 - t * 4.5 + seed * 0.22);
-          float waves = sin((adv.x * 8.0 + adv.y * 11.0) + t * 5.5 + burst * 0.35);
-          vec3 col = palette(0.18 + seed * 0.004 + uPass * 0.03 + t * 0.07);
-          col += accum * 3.8;
-          col += prev0.rgb * 0.58 + prev1.rgb * 0.20 + prev2.rgb * 0.14;
-          col += 0.22 * vec3(rings, waves, sin(rings + waves));
-          col *= smoothstep(1.9, 0.05, length(uv));
-          col += hash(gl_FragCoord.xy + t + seed) * 0.02;
-          gl_FragColor = vec4(pow(max(col, 0.0), vec3(0.92)), 1.0);
+          float radial = exp(-dot(uv, uv) * 0.62);
+          float haloA = exp(-abs(length(uv - orbitA) - 0.28) * 16.0);
+          float haloB = exp(-abs(length(uv - orbitB) - 0.20) * 18.0);
+          float haloC = exp(-abs(length(uv - orbitC) - 0.15) * 20.0);
+          float lattice = pow(0.5 + 0.5 * sin((uv.x * 1.8 + uv.y * 1.2 + t * 0.4) * 4.5), 8.0);
+          float ripple = pow(0.5 + 0.5 * sin((length(uv) * 7.0 - t * 2.4)), 6.0);
+
+          vec3 prev = texture2D(uPrev, clamp(vUv, 0.001, 0.999)).rgb;
+          col += vec3(0.05, 0.07, 0.08) * radial;
+          col += vec3(0.18, 0.12, 0.22) * haloA * 0.28;
+          col += vec3(0.12, 0.18, 0.20) * haloB * 0.22;
+          col += vec3(0.20, 0.11, 0.15) * haloC * 0.18;
+          col += vec3(0.10, 0.11, 0.13) * lattice * 0.08;
+          col += vec3(0.10, 0.09, 0.14) * ripple * 0.07;
+          col += vec3(0.18, 0.20, 0.22) * glowSum * 0.003;
+          col += vec3(0.14, 0.12, 0.17) * ribbonSum * 0.0025;
+          col += vec3(0.08, 0.06, 0.08) * nodeSum * 0.004;
+          col = mix(col, prev, 0.14);
+          col *= 1.0 - smoothstep(0.18, 1.55, length(uv));
+          col += hash(gl_FragCoord.xy + t + uSeed) * 0.008;
+          gl_FragColor = vec4(pow(max(col, 0.0), vec3(0.98)), 1.0);
         }
       `;
 
@@ -499,23 +1338,32 @@
         uniform vec2 uResolution;
         uniform float uTime;
 
+        vec3 tap(vec2 uv) {
+          return texture2D(uTexture, clamp(uv, vec2(0.001), vec2(0.999))).rgb;
+        }
+
         void main() {
           vec2 px = 1.0 / max(uResolution, vec2(1.0));
-          vec2 wobble = vec2(sin(uTime * 0.0005), cos(uTime * 0.0007)) * px * 1.25;
-          vec3 c = texture2D(uTexture, vUv).rgb * 0.16;
-          c += texture2D(uTexture, vUv + px * vec2(-1.0, 0.0)).rgb * 0.08;
-          c += texture2D(uTexture, vUv + px * vec2(1.0, 0.0)).rgb * 0.08;
-          c += texture2D(uTexture, vUv + px * vec2(0.0, -1.0)).rgb * 0.08;
-          c += texture2D(uTexture, vUv + px * vec2(0.0, 1.0)).rgb * 0.08;
-          c += texture2D(uTexture, vUv + wobble).rgb * 0.10;
-          c += texture2D(uTexture, vUv - wobble).rgb * 0.10;
-          c += texture2D(uTexture, vUv + px * vec2(2.0, 2.0)).rgb * 0.06;
-          c += texture2D(uTexture, vUv + px * vec2(-2.0, -2.0)).rgb * 0.06;
-          c += texture2D(uTexture, vUv + px * vec2(3.0, -3.0)).rgb * 0.04;
-          c += texture2D(uTexture, vUv + px * vec2(-3.0, 3.0)).rgb * 0.04;
-          float vignette = smoothstep(1.4, 0.2, length(vUv * 2.0 - 1.0));
-          c = pow(max(c, 0.0), vec3(0.95));
+          vec2 drift = vec2(sin(uTime * 0.0005), cos(uTime * 0.0007)) * px * 0.9;
+          vec3 c = vec3(0.0);
+          c += tap(vUv) * 0.30;
+          c += tap(vUv + px * vec2(1.0, 0.0)) * 0.11;
+          c += tap(vUv + px * vec2(-1.0, 0.0)) * 0.11;
+          c += tap(vUv + px * vec2(0.0, 1.0)) * 0.11;
+          c += tap(vUv + px * vec2(0.0, -1.0)) * 0.11;
+          c += tap(vUv + drift) * 0.10;
+          c += tap(vUv - drift) * 0.10;
+          c += tap(vUv + px * vec2(2.0, 1.0)) * 0.05;
+          c += tap(vUv + px * vec2(-2.0, -1.0)) * 0.05;
+          c += tap(vUv + px * vec2(1.0, 2.0)) * 0.05;
+          c += tap(vUv + px * vec2(-1.0, -2.0)) * 0.05;
+          c += tap(vUv + px * vec2(3.0, -2.0)) * 0.03;
+          c += tap(vUv + px * vec2(-3.0, 2.0)) * 0.03;
+          float vignette = 1.0 - smoothstep(0.14, 1.45, length(vUv * 2.0 - 1.0));
+          c = mix(c, vec3(0.99, 0.995, 1.0), 0.10);
+          c = pow(max(c, 0.0), vec3(0.985));
           c *= vignette;
+          c += (fract(sin(dot(gl_FragCoord.xy + uTime, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.006;
           gl_FragColor = vec4(c, 1.0);
         }
       `;
@@ -760,16 +1608,23 @@
         auxHost.textContent = '';
 
         const count = config.engineCount;
-        for (let i = 0; i < count; i++) {
-          const engineCanvas = i === 0 ? canvas : makeHiddenCanvas();
-          const renderer = createEngine(engineCanvas, i);
-          if (!renderer) {
-            statusTextEl.textContent = '当前浏览器不支持 WebGL';
-            renderStateEl.textContent = '不可用';
-            toggleBtn.disabled = true;
-            return;
+        try {
+          for (let i = 0; i < count; i++) {
+            const engineCanvas = makeHiddenCanvas();
+            const renderer = createEngine(engineCanvas, i);
+            if (!renderer) {
+              setStatus('notSupported');
+              setRenderState('unavailable');
+              toggleBtn.disabled = true;
+              return;
+            }
+            renderers.push(renderer);
           }
-          renderers.push(renderer);
+        } catch (err) {
+          setStatus('compileFailed', err.message);
+          setRenderState('error');
+          toggleBtn.disabled = true;
+          return;
         }
 
         state.currentEngineCount = config.engineCount;
@@ -777,27 +1632,22 @@
       }
 
       function resizeEngines() {
-        if (!renderers.length) {
-          return;
-        }
-
         config.dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
         const cssWidth = canvas.clientWidth || window.innerWidth;
         const cssHeight = canvas.clientHeight || window.innerHeight;
         const width = Math.max(2, Math.floor(cssWidth * config.dpr * config.resScale));
         const height = Math.max(2, Math.floor(cssHeight * config.dpr * config.resScale));
+        if (stageRenderer) {
+          stageRenderer.resize(width, height);
+        }
+        if (!renderers.length) {
+          internalSizeEl.textContent = width + ' × ' + height;
+          return;
+        }
         for (const renderer of renderers) {
           renderer.resize(width, height);
         }
         internalSizeEl.textContent = width + ' × ' + height;
-      }
-
-      function updateLabels() {
-        resLabel.textContent = config.resScale.toFixed(2) + 'x';
-        complexityLabel.textContent = config.complexity + ' 次';
-        passesLabel.textContent = config.passes + ' 次';
-        engineCountLabel.textContent = config.engineCount + ' 个';
-        speedLabel.textContent = config.speed.toFixed(2) + 'x';
       }
 
       function applyPreset(name) {
@@ -832,9 +1682,9 @@
         }
 
         if (!state.running) {
-          statusTextEl.textContent = `参数已更新，${config.engineCount} 个引擎待命。`;
+          setStatus('updated', config.engineCount);
         } else {
-          statusTextEl.textContent = `正在压测中，${config.engineCount} 个引擎并发运行。`;
+          setStatus('running', config.engineCount);
         }
       }
 
@@ -899,18 +1749,17 @@
         state.smoothMs = state.smoothMs ? state.smoothMs * 0.9 + duration * 0.1 : duration;
         state.frameCount += 1;
 
-        if (performance.now() - state.fpsLast >= 500) {
-          state.fps = state.frameCount * 1000 / (performance.now() - state.fpsLast);
+        const now = performance.now();
+        if (now - state.fpsLast >= 500) {
+          state.fps = state.frameCount * 1000 / (now - state.fpsLast);
           state.frameCount = 0;
-          state.fpsLast = performance.now();
+          state.fpsLast = now;
 
           fpsEl.textContent = state.fps.toFixed(0);
           frameMsEl.textContent = state.smoothMs.toFixed(1) + ' ms';
-          renderStateEl.textContent = state.running ? '运行中' : '已暂停';
+          setRenderState(state.running ? 'running' : 'paused');
           const loadHint = state.smoothMs > 0 ? Math.min(999, Math.round((state.smoothMs / 16.67) * 100)) : 0;
-          statusTextEl.textContent = state.running
-            ? `估算负载：${loadHint}% ，${config.engineCount} 个引擎，复杂度 ${config.complexity}，离屏轮数 ${config.passes}。`
-            : '测试已暂停，画面保持静止。';
+          setStatus('load', loadHint, config.engineCount, config.complexity, config.passes);
         }
 
         state.batchActive = false;
@@ -919,19 +1768,16 @@
       function drawIdle() {
         resizeEngines();
         const now = performance.now();
-        const renderer = renderers[0];
-        if (renderer) {
-          renderer.render(now, 1);
+        if (stageRenderer) {
+          stageRenderer.render(now);
         }
       }
 
       function setRunning(next) {
         state.running = next;
-        toggleBtn.textContent = next ? '暂停测试' : '开始测试';
-        renderStateEl.textContent = next ? '运行中' : '已暂停';
-        statusTextEl.textContent = next
-          ? `正在压测中，${config.engineCount} 个引擎并发运行。`
-          : '测试已暂停，画面保持静止。';
+        updateToggleButton();
+        setRenderState(next ? 'running' : 'paused');
+        setStatus(next ? 'running' : 'paused', config.engineCount);
         if (next && !state.raf) {
           state.lastFrame = performance.now();
           state.fpsLast = state.lastFrame;
@@ -953,6 +1799,9 @@
         }
 
         resizeEngines();
+        if (stageRenderer) {
+          stageRenderer.render(now);
+        }
         if (!state.batchActive) {
           beginBatch(now);
         }
@@ -962,27 +1811,6 @@
 
       toggleBtn.addEventListener('click', () => {
         setRunning(!state.running);
-      });
-
-      fullscreenBtn.addEventListener('click', async () => {
-        try {
-          if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
-          } else {
-            await document.exitFullscreen();
-          }
-        } catch (err) {
-          statusTextEl.textContent = '全屏失败：' + err.message;
-        }
-      });
-
-      resetBtn.addEventListener('click', () => {
-        setRunning(false);
-        applyPreset('safe');
-        fpsEl.textContent = '0';
-        frameMsEl.textContent = '0.0 ms';
-        renderStateEl.textContent = '已重置';
-        drawIdle();
       });
 
       preset.addEventListener('change', () => applyPreset(preset.value));
@@ -1002,16 +1830,21 @@
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && state.running) {
-          statusTextEl.textContent = '页面切换到后台，浏览器可能会降低刷新率。';
+          setStatus('background');
         }
       });
 
+      langSelect.addEventListener('change', () => {
+        setLanguage(langSelect.value);
+      });
+
       applyPreset('safe');
+      setLanguage(langSelect.value);
       drawIdle();
       fpsEl.textContent = '0';
       frameMsEl.textContent = '0.0 ms';
-      renderStateEl.textContent = '待机';
-      statusTextEl.textContent = '按“开始测试”启动压测';
+      setRenderState('standby');
+      setStatus('ready');
     })();
   </script>
 </body>
