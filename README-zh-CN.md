@@ -1,7 +1,5 @@
 # GPU 压力测试
 
-English: [README.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README.md) | 日本語: [README-ja.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README-ja.md)
-
 这是一个单文件的浏览器 GPU 压力测试页面，右侧使用 Three.js 线框场景，左侧提供多语言控制面板。
 
 ## 功能

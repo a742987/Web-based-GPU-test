@@ -1,6 +1,6 @@
 # GPU Stress Test
 
-[README-ja.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README-ja.md) | [README-zh-CN.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README-zh-CN.md)
+[日本語](https://github.com/a742987/Web-based-GPU-test/blob/main/README-ja.md) | [简体中文](https://github.com/a742987/Web-based-GPU-test/blob/main/README-zh-CN.md)
 
 A single-file browser-based GPU stress test with a premium UI, multilingual support, and a Three.js wireframe render stage.
 

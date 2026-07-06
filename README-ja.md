@@ -1,7 +1,5 @@
 # GPU ストレステスト
 
-English: [README.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README.md) | 简体中文: [README-zh-CN.md](https://github.com/a742987/Web-based-GPU-test/blob/main/README-zh-CN.md)
-
 Three.js のワイヤーフレーム表示と、裏側で動く WebGL 負荷処理を組み合わせた単一ファイルの GPU ストレステストです。
 
 ## 機能
