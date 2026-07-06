@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>GPU 压力测试</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06070b;
+      --panel: rgba(14, 18, 28, 0.82);
+      --panel-strong: rgba(9, 12, 18, 0.94);
+      --line: rgba(255, 255, 255, 0.09);
+      --line-strong: rgba(255, 255, 255, 0.18);
+      --text: #edf2ff;
+      --muted: #a5afc4;
+      --accent: #7ee2ff;
+      --accent-2: #9b8cff;
+      --good: #6ef3a5;
+      --warn: #ffce73;
+      --bad: #ff7f87;
+      --shadow: 0 24px 72px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(1200px 800px at 20% 15%, rgba(126, 226, 255, 0.16), transparent 45%),
+        radial-gradient(1000px 700px at 80% 20%, rgba(155, 140, 255, 0.14), transparent 40%),
+        radial-gradient(1200px 900px at 50% 100%, rgba(110, 243, 165, 0.08), transparent 42%),
+        linear-gradient(180deg, #05060a 0%, #090c13 45%, #05060a 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: auto;
+      cursor: crosshair;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 18px;
+      gap: 16px;
+    }
+
+    .topbar,
+    .panel {
+      pointer-events: auto;
+      background: linear-gradient(180deg, rgba(20, 24, 35, 0.86), rgba(10, 12, 18, 0.76));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      border-radius: 18px;
+    }
+
+    .topbar {
+      padding: 16px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 24px);
+      letter-spacing: 0.02em;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 64ch;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    button,
+    select,
+    input[type="range"] {
+      font: inherit;
+    }
+
+    button,
+    select {
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+      color: var(--text);
+      padding: 11px 14px;
+      min-height: 42px;
+      outline: none;
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(126, 226, 255, 0.45);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, rgba(126, 226, 255, 0.25), rgba(155, 140, 255, 0.18));
+      border-color: rgba(126, 226, 255, 0.5);
+    }
+
+    button.danger {
+      background: linear-gradient(135deg, rgba(255, 127, 135, 0.26), rgba(255, 206, 115, 0.12));
+      border-color: rgba(255, 127, 135, 0.45);
+    }
+
+    .grid {
+      width: min(100%, 860px);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .panel {
+      padding: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .field strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat .k {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat .v {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .footer {
+      pointer-events: auto;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      max-width: 72ch;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .status {
+      min-width: 180px;
+      text-align: right;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(126, 226, 255, 0.22);
+      background: linear-gradient(135deg, rgba(126, 226, 255, 0.12), rgba(155, 140, 255, 0.08));
+    }
+
+    .status .label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .status .value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 860px) {
+      .grid,
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .footer {
+        align-items: stretch;
+      }
+
+      .status {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .overlay {
+        padding: 12px;
+      }
+
+      .grid,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="gl"></canvas>
+    <div class="overlay">
+      <div class="topbar">
+        <div class="brand">
+          <h1>GPU 压力测试</h1>
+          <p>通过高分辨率全屏渲染和高复杂度片元着色器持续压榨 GPU。建议先从低档开始，再逐步提高负载。</p>
+        </div>
+        <div class="actions">
+          <button id="toggleBtn" class="primary">开始测试</button>
+          <button id="fullscreenBtn">全屏</button>
+          <select id="preset">
+            <option value="safe" selected>安全</option>
+            <option value="medium">中等</option>
+            <option value="extreme">极限</option>
+            <option value="ultra">超压</option>
+          </select>
+          <button id="resetBtn" class="danger">停止并重置</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="grid">
+          <div class="field">
+            <label><span>渲染分辨率倍率</span><strong id="resLabel">1.00x</strong></label>
+            <input id="resolution" type="range" min="0.5" max="2" step="0.05" value="0.8" />
+          </div>
+          <div class="field">
+            <label><span>着色器复杂度</span><strong id="complexityLabel">64 次</strong></label>
+            <input id="complexity" type="range" min="32" max="256" step="1" value="64" />
+          </div>
+          <div class="field">
+            <label><span>每帧绘制次数</span><strong id="passesLabel">1 次</strong></label>
+            <input id="passes" type="range" min="1" max="8" step="1" value="1" />
+          </div>
+          <div class="field">
+            <label><span>并发引擎</span><strong id="engineCountLabel">1 个</strong></label>
+            <input id="engines" type="range" min="1" max="2" step="1" value="1" />
+          </div>
+          <div class="field">
+            <label><span>动画速度</span><strong id="speedLabel">0.90x</strong></label>
+            <input id="speed" type="range" min="0.2" max="2" step="0.05" value="0.9" />
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="stats">
+          <div class="stat"><span class="k">FPS</span><span class="v" id="fps">0</span></div>
+          <div class="stat"><span class="k">帧耗时</span><span class="v" id="frameMs">0.0 ms</span></div>
+          <div class="stat"><span class="k">内部分辨率</span><span class="v" id="internalSize">0 × 0</span></div>
+          <div class="stat"><span class="k">测试状态</span><span class="v" id="renderState">待机</span></div>
+        </div>
+        <div class="status">
+          <span class="label">提示</span>
+          <span class="value" id="statusText">按“开始测试”启动压测</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gl');
+      const toggleBtn = document.getElementById('toggleBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const preset = document.getElementById('preset');
+      const resolution = document.getElementById('resolution');
+      const complexity = document.getElementById('complexity');
+      const passes = document.getElementById('passes');
+      const engines = document.getElementById('engines');
+      const speed = document.getElementById('speed');
+      const resLabel = document.getElementById('resLabel');
+      const complexityLabel = document.getElementById('complexityLabel');
+      const passesLabel = document.getElementById('passesLabel');
+      const engineCountLabel = document.getElementById('engineCountLabel');
+      const speedLabel = document.getElementById('speedLabel');
+      const fpsEl = document.getElementById('fps');
+      const frameMsEl = document.getElementById('frameMs');
+      const internalSizeEl = document.getElementById('internalSize');
+      const renderStateEl = document.getElementById('renderState');
+      const statusTextEl = document.getElementById('statusText');
+
+      const auxHost = document.createElement('div');
+      auxHost.style.position = 'absolute';
+      auxHost.style.left = '-20000px';
+      auxHost.style.top = '0';
+      auxHost.style.width = '1px';
+      auxHost.style.height = '1px';
+      auxHost.style.overflow = 'hidden';
+      auxHost.style.pointerEvents = 'none';
+      document.body.appendChild(auxHost);
+
+      const config = {
+        dpr: Math.max(1, Math.min(window.devicePixelRatio || 1, 3)),
+        resScale: Number(resolution.value),
+        complexity: Number(complexity.value),
+        passes: Number(passes.value),
+        engineCount: Number(engines.value),
+        speed: Number(speed.value)
+      };
+
+      const state = {
+        running: false,
+        raf: 0,
+        batchTimer: 0,
+        batchToken: 0,
+        batchActive: false,
+        batchIndex: 0,
+        batchNow: 0,
+        batchStart: 0,
+        lastFrame: performance.now(),
+        smoothMs: 0,
+        frameCount: 0,
+        fpsLast: performance.now(),
+        fps: 0,
+        currentEngineCount: 0
+      };
+
+      const vsSource = `
+        attribute vec2 aPosition;
+        varying vec2 vUv;
+        void main() {
+          vUv = aPosition * 0.5 + 0.5;
+          gl_Position = vec4(aPosition, 0.0, 1.0);
+        }
+      `;
+
+      const sceneFsSource = `
+        precision highp float;
+        varying vec2 vUv;
+        uniform vec2 uResolution;
+        uniform float uTime;
+        uniform float uPass;
+        uniform int uComplexity;
+        uniform float uSpeed;
+        uniform float uSeed;
+        uniform sampler2D uPrev;
+
+        float hash(vec2 p) {
+          p = fract(p * vec2(123.34, 456.21));
+          p += dot(p, p + 78.233);
+          return fract(p.x * p.y);
+        }
+
+        mat2 rot(float a) {
+          float s = sin(a);
+          float c = cos(a);
+          return mat2(c, -s, s, c);
+        }
+
+        vec3 palette(float t) {
+          vec3 a = vec3(0.16, 0.18, 0.22);
+          vec3 b = vec3(0.62, 0.48, 0.36);
+          vec3 c = vec3(0.95, 0.72, 0.58);
+          vec3 d = vec3(0.18, 0.34, 0.56);
+          return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        void main() {
+          vec2 uv = vUv * 2.0 - 1.0;
+          uv.x *= uResolution.x / max(uResolution.y, 1.0);
+
+          float t = uTime * 0.001 * uSpeed;
+          vec2 p = uv;
+          vec2 flow = vec2(0.0);
+          vec3 accum = vec3(0.0);
+          float seed = uSeed;
+          float burst = 0.0;
+
+          for (int i = 0; i < 384; i++) {
+            if (i >= uComplexity) break;
+            float fi = float(i);
+            float a = t * 0.58 + fi * 0.123 + uPass * 0.271 + seed * 0.05;
+            float r = dot(p, p) + 0.11;
+            p = rot(a) * (abs(p) / r - 0.53);
+            vec2 warp = vec2(sin(p.y * 3.7 + a + seed), cos(p.x * 4.1 - a - seed)) * 0.03;
+            p += warp;
+            flow += warp;
+            float n = hash(p + fi * 0.17 + a + seed);
+            seed += n * 0.01;
+            accum += palette(n + fi * 0.007 + t * 0.02 + seed * 0.02) * (0.008 + n * 0.012);
+            burst += exp(-abs(r - 1.2)) * (0.18 + n);
+            if (mod(fi + seed, 3.0) < 0.55) {
+              vec2 duv = clamp(vUv + flow * 0.015, 0.001, 0.999);
+              accum += texture2D(uPrev, duv).rgb * 0.04;
+            }
+            if (mod(fi, 5.0) < 0.35) {
+              vec2 duv2 = clamp(vUv + vec2(flow.y, -flow.x) * 0.02, 0.001, 0.999);
+              accum += texture2D(uPrev, duv2).rgb * 0.015;
+            }
+          }
+
+          vec2 adv = uv + flow * 45.0;
+          vec4 prev0 = texture2D(uPrev, clamp(vUv + flow * 0.02, 0.001, 0.999));
+          vec4 prev1 = texture2D(uPrev, clamp(vUv + vec2(0.004, -0.003) * (1.0 + 0.5 * sin(t * 1.3 + seed)), 0.001, 0.999));
+          vec4 prev2 = texture2D(uPrev, clamp(vUv + vec2(-0.006, 0.005) * (1.0 + 0.5 * cos(t * 0.7 + seed)), 0.001, 0.999));
+          float rings = sin(length(adv) * 16.0 - t * 4.5 + seed * 0.22);
+          float waves = sin((adv.x * 8.0 + adv.y * 11.0) + t * 5.5 + burst * 0.35);
+          vec3 col = palette(0.18 + seed * 0.004 + uPass * 0.03 + t * 0.07);
+          col += accum * 3.8;
+          col += prev0.rgb * 0.58 + prev1.rgb * 0.20 + prev2.rgb * 0.14;
+          col += 0.22 * vec3(rings, waves, sin(rings + waves));
+          col *= smoothstep(1.9, 0.05, length(uv));
+          col += hash(gl_FragCoord.xy + t + seed) * 0.02;
+          gl_FragColor = vec4(pow(max(col, 0.0), vec3(0.92)), 1.0);
+        }
+      `;
+
+      const presentFsSource = `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D uTexture;
+        uniform vec2 uResolution;
+        uniform float uTime;
+
+        void main() {
+          vec2 px = 1.0 / max(uResolution, vec2(1.0));
+          vec2 wobble = vec2(sin(uTime * 0.0005), cos(uTime * 0.0007)) * px * 1.25;
+          vec3 c = texture2D(uTexture, vUv).rgb * 0.16;
+          c += texture2D(uTexture, vUv + px * vec2(-1.0, 0.0)).rgb * 0.08;
+          c += texture2D(uTexture, vUv + px * vec2(1.0, 0.0)).rgb * 0.08;
+          c += texture2D(uTexture, vUv + px * vec2(0.0, -1.0)).rgb * 0.08;
+          c += texture2D(uTexture, vUv + px * vec2(0.0, 1.0)).rgb * 0.08;
+          c += texture2D(uTexture, vUv + wobble).rgb * 0.10;
+          c += texture2D(uTexture, vUv - wobble).rgb * 0.10;
+          c += texture2D(uTexture, vUv + px * vec2(2.0, 2.0)).rgb * 0.06;
+          c += texture2D(uTexture, vUv + px * vec2(-2.0, -2.0)).rgb * 0.06;
+          c += texture2D(uTexture, vUv + px * vec2(3.0, -3.0)).rgb * 0.04;
+          c += texture2D(uTexture, vUv + px * vec2(-3.0, 3.0)).rgb * 0.04;
+          float vignette = smoothstep(1.4, 0.2, length(vUv * 2.0 - 1.0));
+          c = pow(max(c, 0.0), vec3(0.95));
+          c *= vignette;
+          gl_FragColor = vec4(c, 1.0);
+        }
+      `;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function compileShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          const info = gl.getShaderInfoLog(shader);
+          gl.deleteShader(shader);
+          throw new Error(info || 'Shader compile failed');
+        }
+        return shader;
+      }
+
+      function createProgram(gl, vs, fs) {
+        const program = gl.createProgram();
+        gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, vs));
+        gl.attachShader(program, compileShader(gl, gl.FRAGMENT_SHADER, fs));
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          const info = gl.getProgramInfoLog(program);
+          gl.deleteProgram(program);
+          throw new Error(info || 'Program link failed');
+        }
+        return program;
+      }
+
+      function makeHiddenCanvas() {
+        const extra = document.createElement('canvas');
+        extra.style.position = 'absolute';
+        extra.style.left = '-20000px';
+        extra.style.top = '0';
+        extra.style.width = '1px';
+        extra.style.height = '1px';
+        extra.style.opacity = '0.001';
+        extra.style.pointerEvents = 'none';
+        auxHost.appendChild(extra);
+        return extra;
+      }
+
+      function createEngine(engineCanvas, engineIndex) {
+        const gl = engineCanvas.getContext('webgl', {
+          alpha: false,
+          antialias: false,
+          depth: false,
+          stencil: false,
+          preserveDrawingBuffer: false,
+          premultipliedAlpha: false,
+          powerPreference: 'high-performance'
+        });
+
+        if (!gl) {
+          return null;
+        }
+
+        const sceneProgram = createProgram(gl, vsSource, sceneFsSource);
+        const presentProgram = createProgram(gl, vsSource, presentFsSource);
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+          -1, -1,
+           3, -1,
+          -1,  3
+        ]), gl.STATIC_DRAW);
+
+        gl.disable(gl.DEPTH_TEST);
+        gl.disable(gl.BLEND);
+
+        const scenePosLoc = gl.getAttribLocation(sceneProgram, 'aPosition');
+        const presentPosLoc = gl.getAttribLocation(presentProgram, 'aPosition');
+        gl.useProgram(sceneProgram);
+        gl.enableVertexAttribArray(scenePosLoc);
+        gl.vertexAttribPointer(scenePosLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.useProgram(presentProgram);
+        gl.enableVertexAttribArray(presentPosLoc);
+        gl.vertexAttribPointer(presentPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const sceneUni = {
+          resolution: gl.getUniformLocation(sceneProgram, 'uResolution'),
+          time: gl.getUniformLocation(sceneProgram, 'uTime'),
+          pass: gl.getUniformLocation(sceneProgram, 'uPass'),
+          complexity: gl.getUniformLocation(sceneProgram, 'uComplexity'),
+          speed: gl.getUniformLocation(sceneProgram, 'uSpeed'),
+          seed: gl.getUniformLocation(sceneProgram, 'uSeed'),
+          prev: gl.getUniformLocation(sceneProgram, 'uPrev')
+        };
+
+        const presentUni = {
+          texture: gl.getUniformLocation(presentProgram, 'uTexture'),
+          resolution: gl.getUniformLocation(presentProgram, 'uResolution'),
+          time: gl.getUniformLocation(presentProgram, 'uTime')
+        };
+
+        const local = {
+          index: engineIndex,
+          gl,
+          canvas: engineCanvas,
+          sceneProgram,
+          presentProgram,
+          sceneUni,
+          presentUni,
+          targetWidth: 0,
+          targetHeight: 0,
+          targets: [],
+          seed: 0.73 + engineIndex * 1.91
+        };
+
+        function createTarget(width, height) {
+          const texture = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+          const framebuffer = gl.createFramebuffer();
+          gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+          if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+            gl.deleteFramebuffer(framebuffer);
+            gl.deleteTexture(texture);
+            throw new Error('Framebuffer incomplete');
+          }
+
+          return { texture, framebuffer, width, height };
+        }
+
+        function destroyTarget(target) {
+          if (!target) {
+            return;
+          }
+          gl.deleteFramebuffer(target.framebuffer);
+          gl.deleteTexture(target.texture);
+        }
+
+        function clearTarget(target) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+          gl.viewport(0, 0, target.width, target.height);
+          gl.clearColor(0.0, 0.0, 0.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+
+        function ensureTargets(width, height) {
+          if (local.targetWidth === width && local.targetHeight === height && local.targets.length === 2) {
+            return;
+          }
+
+          local.targets.forEach(destroyTarget);
+          local.targets = [createTarget(width, height), createTarget(width, height)];
+          local.targetWidth = width;
+          local.targetHeight = height;
+          clearTarget(local.targets[0]);
+          clearTarget(local.targets[1]);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+
+        function resize(width, height) {
+          if (engineCanvas.width !== width || engineCanvas.height !== height) {
+            engineCanvas.width = width;
+            engineCanvas.height = height;
+          }
+          gl.viewport(0, 0, width, height);
+          ensureTargets(width, height);
+        }
+
+        function drawScene(inputTexture, target, now, passIndex) {
+          gl.useProgram(sceneProgram);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+          gl.viewport(0, 0, target.width, target.height);
+          gl.uniform2f(sceneUni.resolution, target.width, target.height);
+          gl.uniform1f(sceneUni.time, now);
+          gl.uniform1f(sceneUni.pass, passIndex);
+          gl.uniform1i(sceneUni.complexity, config.complexity);
+          gl.uniform1f(sceneUni.speed, config.speed);
+          gl.uniform1f(sceneUni.seed, local.seed);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, inputTexture);
+          gl.uniform1i(sceneUni.prev, 0);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+
+        function drawPresent(inputTexture, now) {
+          gl.useProgram(presentProgram);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          gl.viewport(0, 0, engineCanvas.width, engineCanvas.height);
+          gl.uniform2f(presentUni.resolution, engineCanvas.width, engineCanvas.height);
+          gl.uniform1f(presentUni.time, now);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, inputTexture);
+          gl.uniform1i(presentUni.texture, 0);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+
+        function render(now, passCount) {
+          if (local.targets.length < 2) {
+            return;
+          }
+
+          let sourceTexture = local.targets[1].texture;
+          const effectivePasses = Math.max(1, passCount);
+          for (let i = 0; i < effectivePasses; i++) {
+            const target = local.targets[i % 2];
+            drawScene(sourceTexture, target, now + engineIndex * 7.5, i);
+            sourceTexture = target.texture;
+          }
+          drawPresent(sourceTexture, now + engineIndex * 7.5);
+        }
+
+        function dispose() {
+          local.targets.forEach(destroyTarget);
+          local.targets = [];
+          gl.deleteBuffer(buffer);
+          gl.deleteProgram(sceneProgram);
+          gl.deleteProgram(presentProgram);
+        }
+
+        return {
+          gl,
+          canvas: engineCanvas,
+          resize,
+          render,
+          dispose
+        };
+      }
+
+      const renderers = [];
+
+      function rebuildEngines() {
+        while (renderers.length) {
+          const renderer = renderers.pop();
+          renderer.dispose();
+        }
+        auxHost.textContent = '';
+
+        const count = config.engineCount;
+        for (let i = 0; i < count; i++) {
+          const engineCanvas = i === 0 ? canvas : makeHiddenCanvas();
+          const renderer = createEngine(engineCanvas, i);
+          if (!renderer) {
+            statusTextEl.textContent = '当前浏览器不支持 WebGL';
+            renderStateEl.textContent = '不可用';
+            toggleBtn.disabled = true;
+            return;
+          }
+          renderers.push(renderer);
+        }
+
+        state.currentEngineCount = config.engineCount;
+        resizeEngines();
+      }
+
+      function resizeEngines() {
+        if (!renderers.length) {
+          return;
+        }
+
+        config.dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+        const cssWidth = canvas.clientWidth || window.innerWidth;
+        const cssHeight = canvas.clientHeight || window.innerHeight;
+        const width = Math.max(2, Math.floor(cssWidth * config.dpr * config.resScale));
+        const height = Math.max(2, Math.floor(cssHeight * config.dpr * config.resScale));
+        for (const renderer of renderers) {
+          renderer.resize(width, height);
+        }
+        internalSizeEl.textContent = width + ' × ' + height;
+      }
+
+      function updateLabels() {
+        resLabel.textContent = config.resScale.toFixed(2) + 'x';
+        complexityLabel.textContent = config.complexity + ' 次';
+        passesLabel.textContent = config.passes + ' 次';
+        engineCountLabel.textContent = config.engineCount + ' 个';
+        speedLabel.textContent = config.speed.toFixed(2) + 'x';
+      }
+
+      function applyPreset(name) {
+        const presets = {
+          safe: { res: 0.80, comp: 64, pass: 1, engines: 1, speed: 0.90 },
+          medium: { res: 1.10, comp: 96, pass: 2, engines: 1, speed: 1.00 },
+          extreme: { res: 1.50, comp: 160, pass: 4, engines: 2, speed: 1.20 },
+          ultra: { res: 1.80, comp: 192, pass: 6, engines: 2, speed: 1.35 }
+        };
+        const presetConfig = presets[name] || presets.safe;
+        resolution.value = String(presetConfig.res);
+        complexity.value = String(presetConfig.comp);
+        passes.value = String(presetConfig.pass);
+        engines.value = String(presetConfig.engines);
+        speed.value = String(presetConfig.speed);
+        syncControls();
+      }
+
+      function syncControls() {
+        config.resScale = Number(resolution.value);
+        config.complexity = Number(complexity.value);
+        config.passes = Number(passes.value);
+        config.engineCount = Number(engines.value);
+        config.speed = Number(speed.value);
+
+        updateLabels();
+
+        if (config.engineCount !== state.currentEngineCount) {
+          rebuildEngines();
+        } else {
+          resizeEngines();
+        }
+
+        if (!state.running) {
+          statusTextEl.textContent = `参数已更新，${config.engineCount} 个引擎待命。`;
+        } else {
+          statusTextEl.textContent = `正在压测中，${config.engineCount} 个引擎并发运行。`;
+        }
+      }
+
+      function slicePasses() {
+        return Math.max(1, Math.ceil(config.passes / Math.max(1, renderers.length)));
+      }
+
+      function stopBatches() {
+        state.batchToken += 1;
+        if (state.batchTimer) {
+          clearTimeout(state.batchTimer);
+        }
+        state.batchTimer = 0;
+        state.batchActive = false;
+        state.batchIndex = 0;
+      }
+
+      function beginBatch(now) {
+        if (!state.running || state.batchActive || !renderers.length) {
+          return;
+        }
+
+        state.batchActive = true;
+        state.batchToken += 1;
+        state.batchIndex = 0;
+        state.batchNow = now;
+        state.batchStart = performance.now();
+        processBatch(state.batchToken);
+      }
+
+      function processBatch(token) {
+        if (!state.running || token !== state.batchToken) {
+          state.batchActive = false;
+          return;
+        }
+
+        const renderer = renderers[state.batchIndex];
+        if (!renderer) {
+          completeBatch(token);
+          return;
+        }
+
+        state.batchTimer = 0;
+        renderer.render(state.batchNow, slicePasses());
+        state.batchIndex += 1;
+
+        if (!state.running || token !== state.batchToken) {
+          state.batchActive = false;
+          return;
+        }
+
+        state.batchTimer = window.setTimeout(() => processBatch(token), 0);
+      }
+
+      function completeBatch(token) {
+        if (!state.running || token !== state.batchToken) {
+          state.batchActive = false;
+          return;
+        }
+
+        const duration = performance.now() - state.batchStart;
+        state.smoothMs = state.smoothMs ? state.smoothMs * 0.9 + duration * 0.1 : duration;
+        state.frameCount += 1;
+
+        if (performance.now() - state.fpsLast >= 500) {
+          state.fps = state.frameCount * 1000 / (performance.now() - state.fpsLast);
+          state.frameCount = 0;
+          state.fpsLast = performance.now();
+
+          fpsEl.textContent = state.fps.toFixed(0);
+          frameMsEl.textContent = state.smoothMs.toFixed(1) + ' ms';
+          renderStateEl.textContent = state.running ? '运行中' : '已暂停';
+          const loadHint = state.smoothMs > 0 ? Math.min(999, Math.round((state.smoothMs / 16.67) * 100)) : 0;
+          statusTextEl.textContent = state.running
+            ? `估算负载：${loadHint}% ，${config.engineCount} 个引擎，复杂度 ${config.complexity}，离屏轮数 ${config.passes}。`
+            : '测试已暂停，画面保持静止。';
+        }
+
+        state.batchActive = false;
+      }
+
+      function drawIdle() {
+        resizeEngines();
+        const now = performance.now();
+        const renderer = renderers[0];
+        if (renderer) {
+          renderer.render(now, 1);
+        }
+      }
+
+      function setRunning(next) {
+        state.running = next;
+        toggleBtn.textContent = next ? '暂停测试' : '开始测试';
+        renderStateEl.textContent = next ? '运行中' : '已暂停';
+        statusTextEl.textContent = next
+          ? `正在压测中，${config.engineCount} 个引擎并发运行。`
+          : '测试已暂停，画面保持静止。';
+        if (next && !state.raf) {
+          state.lastFrame = performance.now();
+          state.fpsLast = state.lastFrame;
+          state.raf = requestAnimationFrame(frame);
+        }
+        if (!next) {
+          if (state.raf) {
+            cancelAnimationFrame(state.raf);
+          }
+          state.raf = 0;
+          stopBatches();
+        }
+      }
+
+      function frame(now) {
+        if (!state.running) {
+          state.raf = 0;
+          return;
+        }
+
+        resizeEngines();
+        if (!state.batchActive) {
+          beginBatch(now);
+        }
+
+        state.raf = requestAnimationFrame(frame);
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        setRunning(!state.running);
+      });
+
+      fullscreenBtn.addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (err) {
+          statusTextEl.textContent = '全屏失败：' + err.message;
+        }
+      });
+
+      resetBtn.addEventListener('click', () => {
+        setRunning(false);
+        applyPreset('safe');
+        fpsEl.textContent = '0';
+        frameMsEl.textContent = '0.0 ms';
+        renderStateEl.textContent = '已重置';
+        drawIdle();
+      });
+
+      preset.addEventListener('change', () => applyPreset(preset.value));
+      resolution.addEventListener('input', syncControls);
+      complexity.addEventListener('input', syncControls);
+      passes.addEventListener('input', syncControls);
+      engines.addEventListener('input', syncControls);
+      speed.addEventListener('input', syncControls);
+
+      window.addEventListener('resize', () => {
+        config.dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+        resizeEngines();
+        if (!state.running) {
+          drawIdle();
+        }
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && state.running) {
+          statusTextEl.textContent = '页面切换到后台，浏览器可能会降低刷新率。';
+        }
+      });
+
+      applyPreset('safe');
+      drawIdle();
+      fpsEl.textContent = '0';
+      frameMsEl.textContent = '0.0 ms';
+      renderStateEl.textContent = '待机';
+      statusTextEl.textContent = '按“开始测试”启动压测';
+    })();
+  </script>
+</body>
+</html>
